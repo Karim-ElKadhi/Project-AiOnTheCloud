@@ -6,7 +6,7 @@ import pickle
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics.pairwise import cosine_similarity
 from surprise import SVD
-
+from streamlit_star_rating import st_star_rating
 
 st.set_page_config(page_title="Movie Recommender", layout="wide")
 
@@ -121,9 +121,10 @@ if selected_genres:
             st.write(f"**{row.title}**")
             st.caption(row.genres)
         with col2:
-            rating = st.slider(
+            rating = st_star_rating(
                 "Rate",
-                1, 5, 0,
+                maxValue=5,
+                defaultValue=0,
                 key=f"rate_{row.movieId}"
             )
             if rating > 0:
