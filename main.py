@@ -43,6 +43,14 @@ def genre_similarity(candidate_movie_id, rated_movies):
     rated_vecs = np.array([movie_genres[m] for m in rated_movies])
     return cosine_similarity(candidate_vec, rated_vecs).mean()
 
+def reset_ratings():
+    for k in list(st.session_state.keys()):
+        if k.startswith("rate_"):
+            del st.session_state[k]
+    st.session_state.user_ratings = {}
+
+
+
 def hybrid_recommend_adaptive(model, df, user_id, user_ratings, k=10):
     all_movies = df["movieId"].unique()
     rated_movies = np.array(list(user_ratings.keys()))
@@ -68,82 +76,221 @@ def hybrid_recommend_adaptive(model, df, user_id, user_ratings, k=10):
 
     return sorted(results, key=lambda x: x["score"], reverse=True)[:k]
 
+
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+if "user_ratings" not in st.session_state:
+    st.session_state.user_ratings = {}
+
+if "selected_genres" not in st.session_state:
+    st.session_state.selected_genres = set()
 # -----------------------------
 # UI
 # -----------------------------
 st.title("🎬 Interactive Movie Recommendation System")
 
 # Session state
-if "user_ratings" not in st.session_state:
-    st.session_state.user_ratings = {}
+if st.session_state.page == "home":
+    st.header("🔥 Top 10 Most Popular Movies")
 
-
-st.header("🔥 Top 10 Most Popular Movies")
-
-popular = (
-    df.groupby(["movieId", "title", "genres"])
-    .agg(avg_rating=("rating", "mean"), count=("rating", "count"))
-    .reset_index()
-)
-
-popular = popular[popular["count"] >= 50] \
-    .sort_values("avg_rating", ascending=False) \
-    .head(10)
-
-st.dataframe(
-    popular[["title", "genres", "avg_rating", "count"]],
-    use_container_width=True
-)
-
-
-st.header("🎭 Choose Your Favorite Genres")
-
-all_genres = sorted(set(g for gs in df["genres_list"] for g in gs))
-selected_genres = st.multiselect("Select genres:", all_genres)
-
-
-if selected_genres:
-    st.header("🎬 Movies Based on Your Genres")
-
-    def has_genre(genres):
-        return any(g in genres for g in selected_genres)
-
-    genre_movies = df[df["genres_list"].apply(has_genre)] \
-        .groupby(["movieId", "title", "genres"]) \
-        .agg(avg_rating=("rating", "mean")) \
-        .reset_index() \
-        .sort_values("avg_rating", ascending=False) \
-        .head(20)
-
-    for row in genre_movies.itertuples():
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.write(f"**{row.title}**")
-            st.caption(row.genres)
-        with col2:
-            rating = st_star_rating(
-                "Rate",
-                maxValue=5,
-                defaultValue=0,
-                key=f"rate_{row.movieId}"
-            )
-            if rating > 0:
-                st.session_state.user_ratings[row.movieId] = rating
-
-
-if len(st.session_state.user_ratings) > 0:
-    st.header("✨ Personalized Recommendations")
-
-    recs = hybrid_recommend_adaptive(
-        model=model,
-        df=df,
-        user_id=9999,
-        user_ratings=st.session_state.user_ratings,
-        k=10
+    popular = (
+        df.groupby(["movieId", "title", "genres"])
+        .agg(AverageRating=("rating", "mean"), ReviewsNumber=("rating", "count"))
+        .reset_index()
     )
 
-    for r in recs:
-        st.markdown(f"**{r['title']}**")
-        st.caption(f"{r['genres']} — ⭐ {r['score']}")
+    popular = popular[popular["ReviewsNumber"] >= 50] \
+        .sort_values("AverageRating", ascending=False) \
+        .head(10)
 
-st.sidebar.success(f"Movies rated: {len(st.session_state.user_ratings)}")
+    st.dataframe(popular[["title", "genres", "AverageRating", "ReviewsNumber"]], use_container_width=True)
+    if st.button("🎯 Get Recommendations"):
+        reset_ratings()
+        st.session_state.page = "genres"
+        st.rerun()
+
+elif st.session_state.page == "genres":
+    st.title("🎭 Choose Your Favorite Genres")
+    all_genres = sorted(set(g for gs in df["genres_list"] for g in gs))
+
+    # Colored toggle cards
+    cols = st.columns(4)
+    colors = ["#FF6B6B", "#6BCB77", "#4D96FF", "#FFD93D"]
+
+    for i, genre in enumerate(all_genres):
+        col = cols[i % 4]
+        color = colors[i % len(colors)]
+        selected = genre in st.session_state.selected_genres
+        button_label = f"✅ {genre}" if selected else genre
+        if col.button(button_label, key=f"genre_{genre}", use_container_width=True):
+            if selected:
+                st.session_state.selected_genres.remove(genre)
+            else:
+                st.session_state.selected_genres.add(genre)
+
+    st.markdown("---")
+    st.write("### Selected genres:")
+    st.write(", ".join(st.session_state.selected_genres) if st.session_state.selected_genres else "None")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅ Back"):
+            reset_ratings()
+            st.session_state.selected_genres = set()
+            st.session_state.page = "home"
+            st.rerun()
+    with col2:
+        if st.button("🎬 Start Rating"):
+            if len(st.session_state.selected_genres) == 0:
+                st.warning("Please select at least one genre!")
+            else:
+                reset_ratings()
+                st.session_state.page = "rating"
+                st.rerun()
+
+# ----- RATING PAGE -----
+elif st.session_state.page == "rating":
+    st.title("⭐ Rate Movies")
+
+    if len(st.session_state.selected_genres) == 0:
+        st.warning("Please select at least one genre first.")
+        if st.button("⬅ Back to Genre Selection"):
+            st.session_state.page = "genres"
+            st.rerun()
+    else:
+        # ---------- SEARCH FIELD ----------
+        st.subheader("🔍 Search for a movie")
+        search_text = st.text_input("Type movie name:", "")
+
+        if search_text:
+            filtered_movies = df[df["title"].str.contains(search_text, case=False, na=False)]
+            filtered_movies = filtered_movies.drop_duplicates(subset="movieId") # Limit to first 10 results
+            if not filtered_movies.empty:
+                st.write(f"### Movies matching '{search_text}':")
+                cols = st.columns(4)
+                for idx, row in enumerate(filtered_movies.itertuples()):
+                    col = cols[idx % 4]
+                    with col:
+                        st.markdown(f'<div class="movie-card">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="movie-title">{row.title}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="movie-genres">{row.genres}</div>', unsafe_allow_html=True)
+                        key = f"rate_{row.movieId}"
+                        rating = st_star_rating(
+                            "Rate",
+                            maxValue=5,
+                            defaultValue=0,
+                            key=key)
+                        if rating > 0:
+                            st.session_state.user_ratings[row.movieId] = rating
+            else:
+                st.info("No movies found matching your search.")
+
+        st.markdown("---")
+        st.markdown("Recommendations based on your selected genres:")
+
+        def has_genre(genres):
+            return any(g in genres for g in st.session_state.selected_genres)
+
+        genre_movies = df[df["genres_list"].apply(has_genre)] \
+            .groupby(["movieId", "title", "genres"]) \
+            .agg(avg_rating=("rating", "mean")) \
+            .reset_index() \
+            .sort_values("avg_rating", ascending=False) \
+            .head(20)
+
+        # CSS for movie cards
+        st.markdown("""
+        <style>
+        .movie-card, .rec-card {
+            display: inline-block;
+            margin: 10px;
+            width: 200px;
+            border-radius: 15px;
+            overflow: hidden;
+            background-color: #f5f5f5;  /* light gray background */
+            color: black;
+            border: 2px solid black;     /* <- visible border */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .movie-card:hover, .rec-card:hover {
+            transform: scale(1.05);
+        }
+
+        .movie-title, .rec-title {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .movie-genres, .rec-genres {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .movie-rating, .rec-score {
+            margin-bottom: 10px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        cols = st.columns(4)
+        for idx, row in enumerate(genre_movies.itertuples()):
+            col = cols[idx % 4]
+            with col:
+                # Card container
+                st.markdown(f'<div class="movie-card">', unsafe_allow_html=True)
+                if getattr(row, "poster_url", None):
+                    st.image(row.poster_url, use_column_width=True)
+                st.markdown(f'<div class="movie-title">{row.title}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="movie-genres">{row.genres}</div>', unsafe_allow_html=True)
+                key = f"rate_genre_{row.movieId}_{idx}"
+                rating = st_star_rating(
+                    "Rate",
+                    maxValue=5,
+                    defaultValue=0,
+                    key=key
+                )
+                if rating > 0:
+                    st.session_state.user_ratings[row.movieId] = rating
+
+        if st.button("✨ Show Recommendations"):
+            st.session_state.page = "results"
+            st.rerun()
+
+# ----- RESULTS PAGE -----
+elif st.session_state.page == "results":
+    st.title("✨ Personalized Recommendations")
+
+    if len(st.session_state.user_ratings) == 0:
+        st.warning("No ratings found. Please rate some movies first.")
+        if st.button("⬅ Back to Rating"):
+            st.session_state.page = "rating"
+            st.rerun()
+    else:
+        recs = hybrid_recommend_adaptive(
+            model=model,
+            df=df,
+            user_id=9999,
+            user_ratings=st.session_state.user_ratings,
+            k=10
+        )
+
+        # Display recommendation cards
+        cols = st.columns(4)
+        for idx, r in enumerate(recs):
+            col = cols[idx % 4]
+            with col:
+                if r.get("poster"):
+                    st.image(r["poster"], use_column_width=True)
+                st.markdown(f"**{r['title']}**")
+                st.caption(f"{r['genres']} — ⭐ {r['score']}")
+
+        if st.button("🔁 Start Again"):
+            reset_ratings()
+            st.session_state.selected_genres = set()
+            st.session_state.page = "home"
+            st.rerun()
