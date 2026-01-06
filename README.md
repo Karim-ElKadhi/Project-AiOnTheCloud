@@ -1,7 +1,4 @@
 # 🎬 Interactive Movie Recommendation System  
-## Hybrid Recommender System – Vertex AI & Streamlit
-
----
 
 ## 📌 Project Overview
 
@@ -20,16 +17,27 @@ The system supports:
 
 
 User (Web Browser)
+
 │
+
 ▼
+
 Streamlit Web Application (Cloud Run)
+
 │
+
 ├── Hybrid Recommendation Engine
+
 │ ├── Collaborative Filtering (SVD)
+
 │ └── Content-Based Filtering (Genres)
+
 │
+
 ├── Pre-trained Model (model.pkl)
+
 └── Movie Dataset (CSV or BigQuery)
+
 
 
 ---
