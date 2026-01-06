@@ -57,11 +57,17 @@ Streamlit Web Application (Cloud Run)
 
 project/
 │
+
 ├── app.py # Streamlit application
+
 ├── movies_merged.csv # Merged dataset (ratings + movies)
+
 ├── model.pkl # Trained SVD model
+
 ├── requirements.txt # Python dependencies
+
 ├── Dockerfile # Container configuration
+
 └── README.md # Documentation
 
 
@@ -127,9 +133,6 @@ Final Score = α × Collaborative Score + (1 − α) × Genre Similarity
 5. User rates movies (1–5 stars)
 6. Recommendations update dynamically
 7. Process continues as the user rates more movies
-
-This design satisfies the requirement:
-> **“A new user interacting with the system and recommendations adapting as more ratings are provided.”**
 
 ---
 
