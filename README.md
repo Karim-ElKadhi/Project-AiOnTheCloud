@@ -22,7 +22,7 @@ User (Web Browser)
 
 ▼
 
-Streamlit Web Application (Cloud Run)
+Web Application 
 
 │
 
@@ -58,11 +58,21 @@ Streamlit Web Application (Cloud Run)
 project/
 │
 
-├── app.py # Streamlit application
+├── data
 
-├── movies_merged.csv # Merged dataset (ratings + movies)
+│ └──  movies_merged.csv # Merged dataset (ratings + movies)
 
-├── model.pkl # Trained SVD model
+├── utils
+
+│ └──  model.pkl # Trained SVD model
+
+│ └──  main.ipynb # script for EDA + model training
+
+├── templates
+
+│ └──  front.html # web interface
+
+├── main.py # Streamlit application
 
 ├── requirements.txt # Python dependencies
 
