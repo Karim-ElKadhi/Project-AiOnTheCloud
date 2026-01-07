@@ -1,9 +1,6 @@
-streamlit
 pandas
-numpy
 scikit-learn
 scikit-surprise
-google-cloud-bigquery
 pyarrow
 flask
 flask-cors

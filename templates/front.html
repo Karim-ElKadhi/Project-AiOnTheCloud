@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,7 +108,7 @@
         }
 
         .genre-btn.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ce5e5e 0%, #7e0707 100%);
             color: white;
             border-color: #764ba2;
         }
@@ -161,6 +162,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .movie-title a {
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .movie-title a:hover {
+            color: #667eea;
         }
 
         .movie-genres {
@@ -306,9 +318,6 @@
             <h2>🎭 Choose Your Favorite Genres</h2>
             <div id="genresLoading" class="loading">Loading genres...</div>
             <div class="genres-grid" id="genresGrid"></div>
-            <div class="selected-genres">
-                <strong>Selected genres:</strong> <span id="selectedGenresText">None</span>
-            </div>
             <div class="button-group">
                 <button class="btn btn-secondary" onclick="showPage('home')">⬅ Back</button>
                 <button class="btn" onclick="startRating()">🎬 Start Rating</button>
@@ -335,13 +344,13 @@
                 <button class="btn" onclick="showRecommendations()" id="getRecsBtn">✨ Show Recommendations</button>
             </div>
         </div>
-
-        <!-- RESULTS PAGE -->
+    <!-- RESULTS PAGE -->
         <div id="results" class="page">
             <h2>✨ Your Personalized Recommendations</h2>
             <div id="recsLoading" class="loading">Generating recommendations...</div>
             <div class="movies-grid" id="recommendations"></div>
             <div class="button-group">
+                <button class="btn btn-secondary" onclick="backToRating()">⬅ Back to Rating</button>
                 <button class="btn" onclick="reset()">🔁 Start Again</button>
             </div>
         </div>
@@ -354,7 +363,7 @@
         let userRatings = {};
         let searchTimeout = null;
 
-        // Initialize home page
+         // Initialize home page
         async function initHome() {
             try {
                 const response = await fetch(`${API_BASE}/popular`);
@@ -513,7 +522,7 @@
                 `You've rated <strong>${count}</strong> movie${count !== 1 ? 's' : ''}`;
         }
 
-        async function showRecommendations() {
+                async function showRecommendations() {
             if (Object.keys(userRatings).length === 0) {
                 alert('Please rate at least one movie!');
                 return;
@@ -524,7 +533,7 @@
             document.getElementById('recommendations').innerHTML = '';
             
             try {
-                const response = await fetch(`${API_BASE}/recommendations/with-streaming`, {
+                const response = await fetch(`${API_BASE}/recommend`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ratings: userRatings })
@@ -535,65 +544,19 @@
                 
                 const container = document.getElementById('recommendations');
                 container.innerHTML = recommendations.map(movie => {
-                    const streaming = movie.streaming || { available: false, services: {} };
+                    // Create JustWatch link
                     const titleClean = movie.title.split('(')[0].trim();
-                    
-                    let streamingHTML = '';
-                    
-                    if (streaming.available && Object.keys(streaming.services).length > 0) {
-                        streamingHTML = '<div class="streaming-links">';
-                        
-                        // Service logos mapping (common services)
-                        const serviceLogos = {
-                            'netflix': 'https://images.justwatch.com/icon/207360008/s100/netflix.webp',
-                            'prime': 'https://images.justwatch.com/icon/120155547/s100/amazon-prime-video.webp',
-                            'hulu': 'https://images.justwatch.com/icon/137382653/s100/hulu.webp',
-                            'disney': 'https://images.justwatch.com/icon/147638351/s100/disney-plus.webp',
-                            'max': 'https://images.justwatch.com/icon/305149444/s100/max.webp',
-                            'apple': 'https://images.justwatch.com/icon/190848813/s100/apple-tv-plus.webp',
-                            'paramount': 'https://images.justwatch.com/icon/242571037/s100/paramount-plus.webp',
-                            'peacock': 'https://images.justwatch.com/icon/261404199/s100/peacock-premium.webp'
-                        };
-                        
-                        Object.entries(streaming.services).forEach(([serviceId, service]) => {
-                            const logo = serviceLogos[serviceId] || '';
-                            const typeClass = service.type || 'subscription';
-                            const typeBadge = service.type ? `<span class="streaming-badge ${typeClass}">${service.type}</span>` : '';
-                            
-                            streamingHTML += `
-                                <a href="${service.link}" target="_blank" rel="noopener noreferrer" class="streaming-btn" title="Watch on ${service.name}">
-                                    ${logo ? `<img src="${logo}" alt="${service.name}">` : ''}
-                                    ${service.name}
-                                    ${typeBadge}
-                                </a>
-                            `;
-                        });
-                        
-                        streamingHTML += '</div>';
-                    } else {
-                        // Fallback links
-                        const justwatchLink = `https://www.justwatch.com/us/search?q=${encodeURIComponent(titleClean)}`;
-                        const googleLink = `https://www.google.com/search?q=watch+${encodeURIComponent(movie.title)}+online+streaming`;
-                        
-                        streamingHTML = `
-                            <div class="no-streaming">Not currently available on major streaming services</div>
-                            <div class="fallback-links">
-                                <a href="${justwatchLink}" target="_blank" rel="noopener noreferrer" class="fallback-btn">
-                                    🎬 Search on JustWatch
-                                </a>
-                                <a href="${googleLink}" target="_blank" rel="noopener noreferrer" class="fallback-btn">
-                                    🔍 Search Online
-                                </a>
-                            </div>
-                        `;
-                    }
+                    const justwatchLink = `https://www.justwatch.com/us/search?q=${encodeURIComponent(titleClean)}`;
                     
                     return `
                         <div class="movie-card recommendation">
-                            <div class="movie-title">${movie.title}</div>
+                            <div class="movie-title">
+                                <a href="${justwatchLink}" target="_blank" rel="noopener noreferrer" title="Find where to watch on JustWatch">
+                                    ${movie.title}
+                                </a>
+                            </div>
                             <div class="movie-genres">${movie.genres}</div>
                             <div class="score-badge">⭐ ${movie.score}</div>
-                            ${streamingHTML}
                         </div>
                     `;
                 }).join('');
@@ -606,6 +569,10 @@
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
+        }
+
+        function backToRating() {
+            showPage('rating');
         }
 
         function reset() {
