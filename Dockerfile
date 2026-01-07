@@ -21,6 +21,6 @@ COPY model.pkl .
 EXPOSE 8080
 
 # Run Streamlit
-CMD ["streamlit", "run", "main.py", \
+CMD ["streamlit", "run", "frontend.py", \
      "--server.port=8080", \
      "--server.address=0.0.0.0"]

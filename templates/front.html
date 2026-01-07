@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Movie Recommender System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ce5e5e 0%, #7e0707 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.3em;
+            color: #667eea;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #ce5e5e 0%, #7e0707 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        /* Genre Selection */
+        .genres-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .genre-btn {
+            padding: 20px;
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .genre-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .genre-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+
+        /* Movie Cards */
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .movie-card {
+            border: 3px solid #7e0707;
+            border-radius: 15px;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-color: #000000;
+        }
+
+        .movie-card.search-result {
+            border-color: #2196F3;
+        }
+
+        .movie-card.search-result:hover {
+            border-color: #7e0707;
+        }
+
+        .movie-card.recommendation {
+            border-color: #FF9800;
+        }
+
+        .movie-card.recommendation:hover {
+            border-color: #F57C00;
+        }
+
+        .movie-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 15px 0 10px 0;
+            color: #333;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .movie-genres {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 15px;
+        }
+
+        .star {
+            font-size: 2em;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+            user-select: none;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #ffd700;
+        }
+
+        .star.active {
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Search Box */
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(135deg, #ce5e5e 0%, #7e0707 100%);
+            color: white;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .selected-genres {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .score-badge {
+            display: inline-block;
+            background: #ffd700;
+            color: #333;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .rating-count {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        hr {
+            margin: 40px 0;
+            border: none;
+            border-top: 2px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Interactive Movie Recommendation System</h1>
+
+        <!-- HOME PAGE -->
+        <div id="home" class="page active">
+            <h2>🔥 Top 10 Most Popular Movies</h2>
+            <div id="homeLoading" class="loading">Loading popular movies...</div>
+            <table id="popularTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Genres</th>
+                        <th>Average Rating</th>
+                        <th>Reviews</th>
+                    </tr>
+                </thead>
+                <tbody id="popularMovies"></tbody>
+            </table>
+            <div class="button-group">
+                <button class="btn" onclick="goToGenres()">🎯 Get Recommendations</button>
+            </div>
+        </div>
+
+        <!-- GENRE SELECTION PAGE -->
+        <div id="genres" class="page">
+            <h2>🎭 Choose Your Favorite Genres</h2>
+            <div id="genresLoading" class="loading">Loading genres...</div>
+            <div class="genres-grid" id="genresGrid"></div>
+            <div class="selected-genres">
+                <strong>Selected genres:</strong> <span id="selectedGenresText">None</span>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="showPage('home')">⬅ Back</button>
+                <button class="btn" onclick="startRating()">🎬 Start Rating</button>
+            </div>
+        </div>
+
+        <!-- RATING PAGE -->
+        <div id="rating" class="page">
+            <h2>⭐ Rate Movies</h2>
+            
+            <h3>🔍 Search for a movie</h3>
+            <input type="text" class="search-box" id="searchBox" placeholder="Type movie name...">
+            <div class="movies-grid" id="searchResults"></div>
+
+            <hr>
+            
+            <h3>Recommended movies based on your genres</h3>
+            <div class="rating-count" id="ratingCount">You've rated <strong>0</strong> movies</div>
+            <div id="genreMoviesLoading" class="loading">Loading movies...</div>
+            <div class="movies-grid" id="genreMovies"></div>
+
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="showPage('genres')">⬅ Back</button>
+                <button class="btn" onclick="showRecommendations()" id="getRecsBtn">✨ Show Recommendations</button>
+            </div>
+        </div>
+
+        <!-- RESULTS PAGE -->
+        <div id="results" class="page">
+            <h2>✨ Your Personalized Recommendations</h2>
+            <div id="recsLoading" class="loading">Generating recommendations...</div>
+            <div class="movies-grid" id="recommendations"></div>
+            <div class="button-group">
+                <button class="btn" onclick="reset()">🔁 Start Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5000/api';
+
+        let selectedGenres = new Set();
+        let userRatings = {};
+        let searchTimeout = null;
+
+        // Initialize home page
+        async function initHome() {
+            try {
+                const response = await fetch(`${API_BASE}/popular`);
+                const movies = await response.json();
+                
+                const tbody = document.getElementById('popularMovies');
+                tbody.innerHTML = movies.map(m => `
+                    <tr>
+                        <td>${m.title}</td>
+                        <td>${m.genres}</td>
+                        <td>${m.avgRating.toFixed(2)}</td>
+                        <td>${m.reviews}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('homeLoading').style.display = 'none';
+                document.getElementById('popularTable').style.display = 'table';
+            } catch (error) {
+                console.error('Error loading popular movies:', error);
+                document.getElementById('homeLoading').textContent = 'Error loading movies. Please refresh.';
+            }
+        }
+
+        // Initialize genres page
+        async function initGenres() {
+            try {
+                const response = await fetch(`${API_BASE}/genres`);
+                const genres = await response.json();
+                
+                const grid = document.getElementById('genresGrid');
+                grid.innerHTML = genres.map(genre => `
+                    <div class="genre-btn" onclick="toggleGenre('${genre}')" id="genre-btn-${genre}">
+                        ${genre}
+                    </div>
+                `).join('');
+                
+                document.getElementById('genresLoading').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading genres:', error);
+                document.getElementById('genresLoading').textContent = 'Error loading genres. Please refresh.';
+            }
+        }
+
+        function toggleGenre(genre) {
+            const btn = document.getElementById(`genre-btn-${genre}`);
+            if (selectedGenres.has(genre)) {
+                selectedGenres.delete(genre);
+                btn.classList.remove('selected');
+            } else {
+                selectedGenres.add(genre);
+                btn.classList.add('selected');
+            }
+            updateSelectedGenres();
+        }
+
+        function updateSelectedGenres() {
+            document.getElementById('selectedGenresText').textContent = 
+                selectedGenres.size > 0 ? Array.from(selectedGenres).join(', ') : 'None';
+        }
+
+        function goToGenres() {
+            showPage('genres');
+            if (document.getElementById('genresGrid').innerHTML === '') {
+                initGenres();
+            }
+        }
+
+        async function startRating() {
+            if (selectedGenres.size === 0) {
+                alert('Please select at least one genre!');
+                return;
+            }
+            showPage('rating');
+            await loadGenreMovies();
+        }
+
+        async function loadGenreMovies() {
+            try {
+                document.getElementById('genreMoviesLoading').style.display = 'block';
+                const response = await fetch(`${API_BASE}/movies/by-genres`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ genres: Array.from(selectedGenres) })
+                });
+                const movies = await response.json();
+                
+                displayMovies('genreMovies', movies, false);
+                document.getElementById('genreMoviesLoading').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading genre movies:', error);
+            }
+        }
+
+        // Search functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchBox = document.getElementById('searchBox');
+            if (searchBox) {
+                searchBox.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+                    
+                    if (query.length > 1) {
+                        searchTimeout = setTimeout(() => searchMovies(query), 300);
+                    } else {
+                        document.getElementById('searchResults').innerHTML = '';
+                    }
+                });
+            }
+        });
+
+        async function searchMovies(query) {
+            try {
+                const response = await fetch(`${API_BASE}/movies/search?q=${encodeURIComponent(query)}`);
+                const movies = await response.json();
+                displayMovies('searchResults', movies, true);
+            } catch (error) {
+                console.error('Error searching movies:', error);
+            }
+        }
+
+        function displayMovies(containerId, moviesList, isSearch = false) {
+            const container = document.getElementById(containerId);
+            if (moviesList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No movies found.</p>';
+                return;
+            }
+            
+            container.innerHTML = moviesList.map(movie => {
+                const currentRating = userRatings[movie.movieId] || 0;
+                return `
+                    <div class="movie-card ${isSearch ? 'search-result' : ''}">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-genres">${movie.genres}</div>
+                        <div class="star-rating" id="rating-${movie.movieId}">
+                            ${[1,2,3,4,5].map(i => 
+                                `<span class="star ${i <= currentRating ? 'active' : ''}" onclick="rateMovie(${movie.movieId}, ${i})">★</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function rateMovie(movieId, rating) {
+            userRatings[movieId] = rating;
+            const stars = document.querySelectorAll(`#rating-${movieId} .star`);
+            stars.forEach((star, idx) => {
+                star.classList.toggle('active', idx < rating);
+            });
+            updateRatingCount();
+        }
+
+        function updateRatingCount() {
+            const count = Object.keys(userRatings).length;
+            document.getElementById('ratingCount').innerHTML = 
+                `You've rated <strong>${count}</strong> movie${count !== 1 ? 's' : ''}`;
+        }
+
+        async function showRecommendations() {
+            if (Object.keys(userRatings).length === 0) {
+                alert('Please rate at least one movie!');
+                return;
+            }
+            
+            showPage('results');
+            document.getElementById('recsLoading').style.display = 'block';
+            document.getElementById('recommendations').innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/recommend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ratings: userRatings })
+                });
+                const recommendations = await response.json();
+                
+                document.getElementById('recsLoading').style.display = 'none';
+                
+                const container = document.getElementById('recommendations');
+                container.innerHTML = recommendations.map(movie => `
+                    <div class="movie-card recommendation">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-genres">${movie.genres}</div>
+                        <div class="score-badge">⭐ ${movie.score}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                document.getElementById('recsLoading').textContent = 'Error generating recommendations. Please try again.';
+            }
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function reset() {
+            selectedGenres.clear();
+            userRatings = {};
+            document.getElementById('searchBox').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            showPage('home');
+            
+            // Reset genre selections
+            document.querySelectorAll('.genre-btn').forEach(btn => btn.classList.remove('selected'));
+            updateSelectedGenres();
+        }
+
+        // Initialize on load
+        initHome();
+    </script>
+</body>
+</html>
