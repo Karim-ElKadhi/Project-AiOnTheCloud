@@ -7,3 +7,4 @@ google-cloud-bigquery
 pyarrow
 flask
 flask-cors
+requests

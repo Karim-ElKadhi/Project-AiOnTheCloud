@@ -6,9 +6,11 @@ import pickle
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 app = Flask(__name__)
 CORS(app)
-
+STREAMING_API_KEY = "c8442e2b69msh29ee07b58678614p1dc075jsnd301611895a0"  
+STREAMING_API_HOST = "streaming-availability.p.rapidapi.com"
 # Load data and model
 df = pd.read_csv("data/movies_merged.csv")
 with open("utils/model.pkl", "rb") as f:
@@ -129,6 +131,193 @@ def recommend():
         user_ratings=user_ratings,
         k=10
     )
+    
+    return jsonify(recommendations)
+@app.route('/api/streaming/<int:movie_id>', methods=['GET'])
+def get_streaming_info(movie_id):
+    """Get streaming availability for a movie"""
+    # Get movie info from dataframe
+    movie = df[df["movieId"] == movie_id]
+    if movie.empty:
+        return jsonify({"error": "Movie not found"}), 404
+    
+    title = movie.iloc[0]["title"]
+    
+    # Extract title and year
+    import re
+    match = re.match(r"(.+?)\s*\((\d{4})\)", title)
+    if match:
+        movie_title = match.group(1).strip()
+        year = match.group(2)
+    else:
+        movie_title = title
+        year = None
+    
+    try:
+        # Search for the movie using Streaming Availability API
+        headers = {
+            "X-RapidAPI-Key": STREAMING_API_KEY,
+            "X-RapidAPI-Host": STREAMING_API_HOST
+        }
+        
+        search_url = "https://streaming-availability.p.rapidapi.com/shows/search/title"
+        params = {
+            "title": movie_title,
+            "country": "us",
+            "output_language": "en"
+        }
+        
+        if year:
+            params["year"] = year
+        
+        response = requests.get(search_url, headers=headers, params=params, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if data and len(data) > 0:
+                # Get the first (best) match
+                show = data[0]
+                streaming_options = show.get("streamingOptions", {}).get("us", [])
+                
+                # Organize by service
+                services = {}
+                for option in streaming_options:
+                    service_info = option.get("service", {})
+                    service_id = service_info.get("id", "")
+                    service_name = service_info.get("name", "")
+                    link = option.get("link", "")
+                    stream_type = option.get("type", "")  # subscription, free, rent, buy
+                    
+                    if service_id not in services:
+                        services[service_id] = {
+                            "name": service_name,
+                            "link": link,
+                            "type": stream_type,
+                            "logo": f"https://www.justwatch.com/images/icon/{service_id}.png"
+                        }
+                
+                return jsonify({
+                    "movieId": movie_id,
+                    "title": title,
+                    "available": len(services) > 0,
+                    "services": services,
+                    "imdbId": show.get("imdbId", ""),
+                    "tmdbId": show.get("tmdbId", "")
+                })
+        
+        # Fallback if no streaming found
+        return jsonify({
+            "movieId": movie_id,
+            "title": title,
+            "available": False,
+            "services": {},
+            "fallbackLinks": {
+                "justwatch": f"https://www.justwatch.com/us/search?q={movie_title.replace(' ', '-').lower()}",
+                "google": f"https://www.google.com/search?q=watch+{movie_title}+{year if year else ''}+online+streaming"
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error fetching streaming info: {e}")
+        # Return fallback links
+        return jsonify({
+            "movieId": movie_id,
+            "title": title,
+            "available": False,
+            "services": {},
+            "error": str(e),
+            "fallbackLinks": {
+                "justwatch": f"https://www.justwatch.com/us/search?q={movie_title.replace(' ', '-').lower()}",
+                "google": f"https://www.google.com/search?q=watch+{movie_title}+{year if year else ''}+online+streaming"
+            }
+        })
+
+@app.route('/api/recommendations/with-streaming', methods=['POST'])
+def recommend_with_streaming():
+    """Get recommendations and fetch streaming info for all of them"""
+    data = request.json
+    user_ratings = {int(k): v for k, v in data.get('ratings', {}).items()}
+    
+    if not user_ratings:
+        return jsonify({"error": "No ratings provided"}), 400
+    
+    # Get recommendations
+    recommendations = hybrid_recommend_adaptive(
+        model=model,
+        df=df,
+        user_id=9999,
+        user_ratings=user_ratings,
+        k=10
+    )
+    
+    # Fetch streaming info for each recommendation
+    for rec in recommendations:
+        movie_id = rec['movieId']
+        
+        # Get movie title and extract year
+        title = rec['title']
+        import re
+        match = re.match(r"(.+?)\s*\((\d{4})\)", title)
+        if match:
+            movie_title = match.group(1).strip()
+            year = match.group(2)
+        else:
+            movie_title = title
+            year = None
+        
+        try:
+            headers = {
+                "X-RapidAPI-Key": STREAMING_API_KEY,
+                "X-RapidAPI-Host": STREAMING_API_HOST
+            }
+            
+            search_url = "https://streaming-availability.p.rapidapi.com/shows/search/title"
+            params = {
+                "title": movie_title,
+                "country": "us",
+                "output_language": "en"
+            }
+            
+            if year:
+                params["year"] = year
+            
+            response = requests.get(search_url, headers=headers, params=params, timeout=3)
+            
+            if response.status_code == 200:
+                search_data = response.json()
+                
+                if search_data and len(search_data) > 0:
+                    show = search_data[0]
+                    streaming_options = show.get("streamingOptions", {}).get("us", [])
+                    
+                    services = {}
+                    for option in streaming_options:
+                        service_info = option.get("service", {})
+                        service_id = service_info.get("id", "")
+                        service_name = service_info.get("name", "")
+                        link = option.get("link", "")
+                        stream_type = option.get("type", "")
+                        
+                        if service_id not in services:
+                            services[service_id] = {
+                                "name": service_name,
+                                "link": link,
+                                "type": stream_type
+                            }
+                    
+                    rec['streaming'] = {
+                        "available": len(services) > 0,
+                        "services": services
+                    }
+                else:
+                    rec['streaming'] = {"available": False, "services": {}}
+            else:
+                rec['streaming'] = {"available": False, "services": {}}
+                
+        except Exception as e:
+            print(f"Error fetching streaming for {movie_title}: {e}")
+            rec['streaming'] = {"available": False, "services": {}}
     
     return jsonify(recommendations)
 

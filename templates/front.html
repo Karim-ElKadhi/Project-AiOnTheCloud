@@ -524,7 +524,7 @@
             document.getElementById('recommendations').innerHTML = '';
             
             try {
-                const response = await fetch(`${API_BASE}/recommend`, {
+                const response = await fetch(`${API_BASE}/recommendations/with-streaming`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ratings: userRatings })
@@ -534,13 +534,69 @@
                 document.getElementById('recsLoading').style.display = 'none';
                 
                 const container = document.getElementById('recommendations');
-                container.innerHTML = recommendations.map(movie => `
-                    <div class="movie-card recommendation">
-                        <div class="movie-title">${movie.title}</div>
-                        <div class="movie-genres">${movie.genres}</div>
-                        <div class="score-badge">⭐ ${movie.score}</div>
-                    </div>
-                `).join('');
+                container.innerHTML = recommendations.map(movie => {
+                    const streaming = movie.streaming || { available: false, services: {} };
+                    const titleClean = movie.title.split('(')[0].trim();
+                    
+                    let streamingHTML = '';
+                    
+                    if (streaming.available && Object.keys(streaming.services).length > 0) {
+                        streamingHTML = '<div class="streaming-links">';
+                        
+                        // Service logos mapping (common services)
+                        const serviceLogos = {
+                            'netflix': 'https://images.justwatch.com/icon/207360008/s100/netflix.webp',
+                            'prime': 'https://images.justwatch.com/icon/120155547/s100/amazon-prime-video.webp',
+                            'hulu': 'https://images.justwatch.com/icon/137382653/s100/hulu.webp',
+                            'disney': 'https://images.justwatch.com/icon/147638351/s100/disney-plus.webp',
+                            'max': 'https://images.justwatch.com/icon/305149444/s100/max.webp',
+                            'apple': 'https://images.justwatch.com/icon/190848813/s100/apple-tv-plus.webp',
+                            'paramount': 'https://images.justwatch.com/icon/242571037/s100/paramount-plus.webp',
+                            'peacock': 'https://images.justwatch.com/icon/261404199/s100/peacock-premium.webp'
+                        };
+                        
+                        Object.entries(streaming.services).forEach(([serviceId, service]) => {
+                            const logo = serviceLogos[serviceId] || '';
+                            const typeClass = service.type || 'subscription';
+                            const typeBadge = service.type ? `<span class="streaming-badge ${typeClass}">${service.type}</span>` : '';
+                            
+                            streamingHTML += `
+                                <a href="${service.link}" target="_blank" rel="noopener noreferrer" class="streaming-btn" title="Watch on ${service.name}">
+                                    ${logo ? `<img src="${logo}" alt="${service.name}">` : ''}
+                                    ${service.name}
+                                    ${typeBadge}
+                                </a>
+                            `;
+                        });
+                        
+                        streamingHTML += '</div>';
+                    } else {
+                        // Fallback links
+                        const justwatchLink = `https://www.justwatch.com/us/search?q=${encodeURIComponent(titleClean)}`;
+                        const googleLink = `https://www.google.com/search?q=watch+${encodeURIComponent(movie.title)}+online+streaming`;
+                        
+                        streamingHTML = `
+                            <div class="no-streaming">Not currently available on major streaming services</div>
+                            <div class="fallback-links">
+                                <a href="${justwatchLink}" target="_blank" rel="noopener noreferrer" class="fallback-btn">
+                                    🎬 Search on JustWatch
+                                </a>
+                                <a href="${googleLink}" target="_blank" rel="noopener noreferrer" class="fallback-btn">
+                                    🔍 Search Online
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="movie-card recommendation">
+                            <div class="movie-title">${movie.title}</div>
+                            <div class="movie-genres">${movie.genres}</div>
+                            <div class="score-badge">⭐ ${movie.score}</div>
+                            ${streamingHTML}
+                        </div>
+                    `;
+                }).join('');
             } catch (error) {
                 console.error('Error getting recommendations:', error);
                 document.getElementById('recsLoading').textContent = 'Error generating recommendations. Please try again.';
