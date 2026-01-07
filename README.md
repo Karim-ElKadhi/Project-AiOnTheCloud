@@ -3,8 +3,7 @@
 ## 📌 Project Overview
 
 This project implements an **interactive movie recommendation system** that adapts dynamically to user preferences.  
-It combines **Collaborative Filtering** and **Content-Based Filtering** into a **hybrid recommendation approach**, deployed as a **Streamlit web application** on **Google Cloud (Vertex AI / Cloud Run)**.
-
+It combines **Collaborative Filtering** and **Content-Based Filtering** into a **hybrid recommendation approach**, deployed as a **Flask web application with a modern HTML/CSS/JavaScript frontend** on **Google Cloud (Vertex AI / Cloud Run)**.
 The system supports:
 - Cold-start users
 - Real-time interaction
@@ -51,6 +50,12 @@ Web Application
 - Pandas & NumPy
 - Google Cloud Platform (Vertex AI, Cloud Run)
 - Docker
+
+### Frontend
+- **HTML5/CSS3** (Modern UI Design)
+- **Vanilla JavaScript** (Dynamic Interactions)
+- **Fetch API** (Backend Communication)
+- **Responsive Grid Layout**
 
 ---
 ## 📂 Project Structure
@@ -136,19 +141,45 @@ Final Score = α × Collaborative Score + (1 − α) × Genre Similarity
 
 ## 🧭 User Interaction Flow
 
-1. User opens the web application
-2. Top 10 most popular movies are displayed
-3. User selects preferred genres
-4. System recommends 20 movies based on selected genres
-5. User rates movies (1–5 stars)
-6. Recommendations update dynamically
-7. Process continues as the user rates more movies
+1. **Home Page** → User opens the web application
+2. **Popular Movies** → Top 10 most popular movies are displayed
+3. **Genre Selection** → User selects preferred genres (Action, Drama, Sci-Fi, etc.)
+4. **Rating Interface** → 
+   - System displays movies from selected genres
+   - Search functionality to find specific movies
+   - User rates movies (1–5 stars using interactive star rating)
+5. **Dynamic Recommendations** → Hybrid algorithm generates personalized recommendations
+6. **Results Page** → 
+   - Top 10 recommended movies displayed with scores
+   - Clickable titles linking to JustWatch for streaming availability
+7. **Iteration** → User can return to rate more movies or start over with new genre preferences
 
 ---
 
 ## ▶️ Run the Application Locally
 
-### 1️⃣ Install dependencies
+### 1️⃣ Clone the repository
+```bash
+git clone 
+cd movie-recommender
+```
+
+### 2️⃣ Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
+
+### 3️⃣ Prepare the data
+Ensure you have:
+- `movies_merged.csv` in the project root
+- `model.pkl` (trained SVD model) in the project root
+
+### 4️⃣ Run the Flask server
+```bash
+python app.py
+```
+The application will start on `http://localhost:5000`
+
+### 5️⃣ Open in browser
+Navigate to `http://localhost:5000` in your web browser
+
