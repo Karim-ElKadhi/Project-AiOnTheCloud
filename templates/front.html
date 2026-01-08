@@ -295,7 +295,7 @@
 
         <!-- HOME PAGE -->
         <div id="home" class="page active">
-            <h2>🔥 Top 10 Most Popular Movies</h2>
+            <h2>🎬 Top 10 Most Popular Movies</h2>
             <div id="homeLoading" class="loading">Loading popular movies...</div>
             <table id="popularTable" style="display: none;">
                 <thead>
@@ -307,6 +307,20 @@
                     </tr>
                 </thead>
                 <tbody id="popularMovies"></tbody>
+            </table>
+              <h2>🔥 Top 10 Newest Movies</h2>
+            <div id="newestLoading" class="loading">Loading newest movies...</div>
+            <table id="newestTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Genres</th>
+                        <th>Year</th>
+                        <th>Average Rating</th>
+                        <th>Reviews</th>
+                    </tr>
+                </thead>
+                <tbody id="newestMovies"></tbody>
             </table>
             <div class="button-group">
                 <button class="btn" onclick="goToGenres()">🎯 Get Recommendations</button>
@@ -381,9 +395,28 @@
                 
                 document.getElementById('homeLoading').style.display = 'none';
                 document.getElementById('popularTable').style.display = 'table';
+
+                // Load newest movies
+                const newestResponse = await fetch(`${API_BASE}/newest`);
+                const newestMovies = await newestResponse.json();
+                
+                const newestTbody = document.getElementById('newestMovies');
+                newestTbody.innerHTML = newestMovies.map(m => `
+                    <tr>
+                        <td>${m.title}</td>
+                        <td>${m.genres}</td>
+                        <td>${m.year}</td>
+                        <td>${m.avgRating.toFixed(2)}</td>
+                        <td>${m.reviews}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('newestLoading').style.display = 'none';
+                document.getElementById('newestTable').style.display = 'table';
             } catch (error) {
-                console.error('Error loading popular movies:', error);
+                console.error('Error loading movies:', error);
                 document.getElementById('homeLoading').textContent = 'Error loading movies. Please refresh.';
+                document.getElementById('newestLoading').textContent = 'Error loading movies. Please refresh.';
             }
         }
 

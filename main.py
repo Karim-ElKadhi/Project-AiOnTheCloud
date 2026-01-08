@@ -72,6 +72,36 @@ def get_popular():
         .head(10)
     
     return jsonify(popular.to_dict('records'))
+@app.route('/api/newest', methods=['GET'])
+def get_newest():
+    """Get top 10 newest movies based on release year in title"""
+    import re
+    
+    # Extract year from title and create a new column
+    def extract_year(title):
+        match = re.search(r'\((\d{4})\)', title)
+        return int(match.group(1)) if match else 0
+    
+    df_with_year = df.drop_duplicates("movieId").copy()
+    df_with_year['year'] = df_with_year['title'].apply(extract_year)
+    
+    # Get movies with valid years and at least some ratings
+    newest = (
+        df[df['movieId'].isin(df_with_year[df_with_year['year'] > 0]['movieId'])]
+        .groupby(["movieId", "title", "genres"])
+        .agg(avgRating=("rating", "mean"), reviews=("rating", "count"))
+        .reset_index()
+    )
+    
+    # Add year column
+    newest['year'] = newest['title'].apply(extract_year)
+    
+    # Filter movies with at least 10 reviews and sort by year
+    newest = newest[newest["reviews"] >= 10] \
+        .sort_values("year", ascending=False) \
+        .head(10)
+    
+    return jsonify(newest.to_dict('records'))
 
 @app.route('/api/genres', methods=['GET'])
 def get_genres():
