@@ -156,16 +156,17 @@ Final Score = α × Collaborative Score + (1 − α) × Genre Similarity
 
 1. **Home Page** → User opens the web application
 2. **Popular Movies** → Top 10 most popular movies are displayed
-3. **Genre Selection** → User selects preferred genres (Action, Drama, Sci-Fi, etc.)
-4. **Rating Interface** → 
+3. **Newest Movies** → Top 10 newest movies are displayed
+4. **Genre Selection** → User selects preferred genres (Action, Drama, Sci-Fi, etc.)
+5. **Rating Interface** → 
    - System displays movies from selected genres
    - Search functionality to find specific movies
    - User rates movies (1–5 stars using interactive star rating)
-5. **Dynamic Recommendations** → Hybrid algorithm generates personalized recommendations
-6. **Results Page** → 
+6. **Dynamic Recommendations** → Hybrid algorithm generates personalized recommendations
+7. **Results Page** → 
    - Top 10 recommended movies displayed with scores
    - Clickable titles linking to JustWatch for streaming availability
-7. **Iteration** → User can return to rate more movies or start over with new genre preferences
+8. **Iteration** → User can return to rate more movies or start over with new genre preferences
 
 ---
 
