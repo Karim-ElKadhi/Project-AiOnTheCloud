@@ -108,10 +108,11 @@ The dataset is a merged version of movies and ratings data.
 
 
 **Evaluation Metrics:** 
-•	RMSE ≈ 0.73
-•	MAE ≈ 0.54
+-	RMSE ≈ 0.73
+-	MAE ≈ 0.54
+
 Interpretation:
-•	Predictions are on average within ±0.5 rating points
+-	Predictions are on average within ±0.5 rating points
 
 
 ---
@@ -145,9 +146,9 @@ Final Score = α × Collaborative Score + (1 − α) × Genre Similarity
 - `α` increases as the user provides more ratings
 - Ensures smooth transition from content-based to collaborative filtering
   
-•	α increases as the user provides more ratings
-•	Early stage → content-based dominant
-•	Later stage → collaborative dominant
+-	α increases as the user provides more ratings
+-	Early stage → content-based dominant
+-	Later stage → collaborative dominant
 
 ---
 
